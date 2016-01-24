@@ -3,7 +3,7 @@
   "version": "0.0.0-semantically-release",
   "description": "NPM Group Dependency Manager",
   "scripts": {
-    "postinstall": "npm-dep publish",
+    "postinstall": "npm link && npm-dep publish",
     "test": "npm-dep && npm-dep -l && npm-dep -a && npm-dep -c && npm-dep -p"
   },
   "bin": {
