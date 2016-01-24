@@ -1,0 +1,39 @@
+{
+  "name": "npm-dep",
+  "version": "0.0.0-semantically-release",
+  "description": "NPM Group Dependency Manager",
+  "scripts": {
+    "postinstall": "npm-dep publish",
+    "test": "npm-dep && npm-dep -l && npm-dep -a && npm-dep -c && npm-dep -p"
+  },
+  "bin": {
+    "npm-dep": "./bin/npm-dep-cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kitware/npm-dep.git"
+  },
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/kitware/npm-dep/issues"
+  },
+  "homepage": "https://github.com/kitware/npm-dep#readme",
+  "dependencies": {
+    "package-json": "2.3.0",
+    "commander": "2.9.0",
+    "shelljs": "0.5.3"
+  },
+  "dep": {
+    "test": {},
+    "build": {},
+    "publish": {
+        "semantic-release": "4.3.5",
+        "cz-conventional-changelog": "1.1.5"
+    }
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  }
+}
