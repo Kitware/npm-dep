@@ -3,6 +3,8 @@
   "version": "0.0.0-semantically-release",
   "description": "NPM Group Dependency Manager",
   "scripts": {
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
+
     "pretest": "npm link && npm-dep publish",
     "test": "npm-dep && npm-dep -l && npm-dep -a && npm-dep -c && npm-dep -p"
   },
@@ -27,6 +29,7 @@
     "test": {},
     "build": {},
     "publish": {
+        "commitizen": "2.4.6",
         "semantic-release": "4.3.5",
         "cz-conventional-changelog": "1.1.5"
     }
