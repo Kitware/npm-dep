@@ -9,10 +9,11 @@ var nodeDir,
     maxVersionSize = 3,
     lastParentDir = process.env.PWD;
 
-/* global exec exit ls ln mkdir */
+/* global exec exit ls ln mkdir test */
+/* eslint-disable vars-on-top */
 require('shelljs/global');
 
-const fs = require('fs'),
+var fs = require('fs'),
     path = require('path'),
     program = require('commander'),
     packageJson = require('package-json'),
@@ -83,9 +84,9 @@ function printProgress(name, version, action, lineStart) {
 }
 
 function findPackage(pkgNameVersion) {
-    const name = pkgNameVersion.split('@')[0];
-    const version = pkgNameVersion.split('@')[1];
-    const founds = [];
+    var name = pkgNameVersion.split('@')[0];
+    var version = pkgNameVersion.split('@')[1];
+    var founds = [];
 
     nodeModuleDirs.forEach( function(basePath) {
         var packagePathDir = path.join(basePath, name);
@@ -94,7 +95,7 @@ function findPackage(pkgNameVersion) {
             if(fs.statSync(packagePathDir).isDirectory()) {
                 // Check local version compare to requested
                 if(require(path.join(packagePathDir, 'package.json')).version === version) {
-                    const relativePath = path.relative(process.env.PWD, path.dirname(basePath));
+                    var relativePath = path.relative(process.env.PWD, path.dirname(basePath));
                     founds.push(relativePath.length ? relativePath : '.');
                 }
             }
@@ -109,9 +110,9 @@ function findPackage(pkgNameVersion) {
 
 function consumeNextDependency() {
     if(depsToInstall.length && currentPoolSize < maxDownloadPool) {
-        const pkgNameVersion = depsToInstall.pop();
-        const nameVersion = pkgNameVersion.split('@');
-        const packagePath = findPackage(pkgNameVersion);
+        var pkgNameVersion = depsToInstall.pop();
+        var nameVersion = pkgNameVersion.split('@');
+        var packagePath = findPackage(pkgNameVersion);
 
         if(!packagePath) {
             currentPoolSize++;
@@ -136,12 +137,15 @@ function consumeNextDependency() {
 
 function linkExecutable(src, dest) {
     if(src !== dest) {
-        const binPath = path.join(src, '.bin');
-        const execPath = path.join(dest, '.bin');
+        var binPath = path.join(src, '.bin');
+        var execPath = path.join(dest, '.bin');
         mkdir('-p', binPath);
         mkdir('-p', execPath);
         ls(binPath).forEach(function(file) {
-            ln('-sf', path.join(binPath, file), path.join(execPath, path.basename(file)));
+            var srcPath = path.join(binPath, file);
+            if(test('-e', srcPath)) {
+                ln('-sf', srcPath, path.join(execPath, path.basename(file)));
+            }
         });
     }
 }
@@ -154,9 +158,9 @@ function processDependencies() {
     }
 
     // Add bin exec from parent
-    nodeModuleDirs.forEach(src => {
+    nodeModuleDirs.forEach(function(src) {
         linkExecutable(src, destDir);
-    })
+    });
 }
 
 function processDependencyMap(depMap) {
@@ -169,7 +173,7 @@ function processDependencyMap(depMap) {
 }
 
 function checkVersion(entry) {
-    const name = entry.split('@')[0],
+    var name = entry.split('@')[0],
         version = entry.split('@')[1];
 
     packageJson(name, 'latest').then(function(json){
@@ -196,7 +200,7 @@ if(program.checkPackage) {
     });
     processDependencies();
 } else if(program.check) {
-    const groups = program.args.length ? program.args : Object.keys(pkgJson.dep);
+    var groups = program.args.length ? program.args : Object.keys(pkgJson.dep);
     groups.forEach( function(group) {
         processDependencyMap(pkgJson.dep[group]);
     });
