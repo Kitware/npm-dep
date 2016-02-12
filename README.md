@@ -1,7 +1,9 @@
 # Introduction
 
-**npm-dep** provides a more flexible mechanism to install 
-dependencies than the standard behavior of NPM.
+**npm-dep** provides a way to cache your tools dependencies
+on your file system so you don't need to re-download them again
+while allowing to share them between projects. Moreover, 
+why should you mix your development tools into your code dependencies.
 
 Currently NPM install all the dependencies from 
 **dependencies** and **devDependencies** inside your
@@ -12,10 +14,11 @@ But what if:
 - You just want to install a custom set of dependencies when
   you execute a **run script** (npm run xxx). 
 
-- You don't want to re-install any dependency that is actually
-  available on any parent **node_modules** directory.
+- You don't want to re-download Webpack, PhantomJS, Karma for
+  a freshly created project.
 
-- You want to easily check if any new version of a dependency is available.
+- You want to easily check if any new version of a dependency
+  is available.
 
 Then maybe **npm-dep** is for you...
 
@@ -66,6 +69,44 @@ like the following example.
 }
 ```
 
+or externalise that information to another file so it could be used
+by another project that depend on your **npm-dep** friendly application.
+
+```javascript
+# ./config/tools.js
+module.exports = {
+    name: 'YourProjectName', // Can be shared accross projects to prevent re-download
+    dep: {
+        // Use to build code
+        groupNameA: {
+            packageName: 'version',
+            [...]
+        },
+        // Use to test section A
+        groupNameB: {
+            packageName2: 'version54',
+            [...]
+        }
+    }
+}
+
+# package.json
+{
+    [...]
+
+    "config": {
+        "npm-dep": {
+            "path": "config/tools.js"
+        }
+    }
+}
+```
+
+Then when running, **npm-dep** will install the required set of packages
+into your ${HOME}/.npm-dep/${name}/node_modules/ directory and create 
+a symbolic link to your local directories (./node_modules/* & ./node_modules/.bin/*)
+for each missing application or package.
+
 Here is the full list of usage:
 
 ```sh
@@ -84,38 +125,6 @@ Here is the full list of usage:
     
     -s, --silent         Silence any output.
 ```
-
-# Best practice
-
-This section is more about me sharing my way of using it
-than me trying to convert you into using it. But if I find
-some benefit in it, you might also find some.
-
-First of all I have several web project that I concurrently
-work on and I want to share as much as possible setup, and
-build/test dependencies and finally I want to easily upgrade versions
-across them.
-
-To achieve that, I create a root/empty project from which I will declare
-all my common dependencies inside a **package.json** using the **npm-dep**
-sctructure. Then I rely on **npm-dep** for installing all of them at the 
-**postinstall** stage.
-
-Then for each new development, I start working in a child directory
-(new clone of the git repo).
-Then to allow easy update from the root to the children, I use the
-exact same **npm-dep** section inside my children projects which
-allow me to quickly copy/paste any fix I have done into my root one.
-(This part could/should be automated with additional work on npm-dep)
-
-For any specific project depedency, I rely on the standard NPM
-behavior with **dependencies** and **devDependencies**.
-
-This way, I never re-download my big dependencies and I don't pollute
-my environement using the **global** flag when installing them.
-
-Moreover, if anyone, checkout a project that rely on npm-check without
-any parent container, everything will still work as it is supposed to do.
 
 ### Licensing
 

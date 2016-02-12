@@ -1,28 +1,38 @@
 #! /usr/bin/env node
 
+var fs = require('fs'),
+    path = require('path'),
+    program = require('commander'),
+    packageJson = require('package-json');
+
+
 var nodeDir,
+    pkg = require('../package.json'),
+    targetPkg = require( path.join(process.env.PWD, 'package.json')),
+    appVersion = /semantically-release/.test(pkg.version) ? 'development version' : pkg.version,
     depsToInstall = [],
-    nodeModuleDirs = [],
     maxDownloadPool = 4,
     currentPoolSize = 0,
     maxNameSize = 3,
     maxVersionSize = 3,
-    lastParentDir = process.env.PWD;
+    rootPath = path.join(process.env.HOME, '.npm-dep'),
+    workDir = path.join(rootPath, targetPkg.name),
+    depGroups = targetPkg.dep;
 
+// Find working directory
+if(targetPkg && targetPkg.config && targetPkg.config['npm-dep'] && targetPkg.config['npm-dep'].path) {
+    var conf = require(path.join(process.env.PWD, targetPkg.config['npm-dep'].path));
+    workDir = path.join(rootPath, conf.name);
+    depGroups = conf.dep;
+}
 /* global exec exit ls ln mkdir test */
 /* eslint-disable vars-on-top */
 require('shelljs/global');
 
-var fs = require('fs'),
-    path = require('path'),
-    program = require('commander'),
-    packageJson = require('package-json'),
-    pkgJson = require(path.join(process.env.PWD, 'package.json'));
-
-process.title = pkgJson.name;
+process.title = pkg.name;
 
 program
-  .version('1.0.0')
+  .version(appVersion)
   .usage('[options] or target1 target2 ...')
 
   .option('-c, --check', 'Check outdated dependencies.')
@@ -35,25 +45,14 @@ program
 
   .parse(process.argv);
 
-// Find all parent node_modules
-while(lastParentDir !== path.dirname(lastParentDir)) {
-    nodeDir = path.join(lastParentDir, 'node_modules');
-    try {
-        /* eslint-disable no-sync */
-        if(fs.statSync(nodeDir).isDirectory()) {
-            nodeModuleDirs.push(nodeDir);
-        }
-        /* eslint-enable no-sync */
-    } catch(e) {
-        // Directory does not exist
-    }
-    lastParentDir = path.dirname(lastParentDir)
-}
 
 // Show help if no argument provided
-if (!process.argv.slice(2).length) {
+if (!process.argv.slice(2).length || !depGroups) {
     program.outputHelp();
     exit(0);
+} else {
+    mkdir('-p', workDir);
+    cd(workDir);
 }
 
 function expandMaxNameSize(str) {
@@ -86,35 +85,43 @@ function printProgress(name, version, action, lineStart) {
 function findPackage(pkgNameVersion) {
     var name = pkgNameVersion.split('@')[0];
     var version = pkgNameVersion.split('@')[1];
-    var founds = [];
 
-    nodeModuleDirs.forEach( function(basePath) {
-        var packagePathDir = path.join(basePath, name);
-        try {
-            /* eslint-disable no-sync */
-            if(fs.statSync(packagePathDir).isDirectory()) {
-                // Check local version compare to requested
-                if(require(path.join(packagePathDir, 'package.json')).version === version) {
-                    var relativePath = path.relative(process.env.PWD, path.dirname(basePath));
-                    founds.push(relativePath.length ? relativePath : '.');
-                }
+    var packagePathDir = path.join(workDir, 'node_modules', name);
+    try {
+        /* eslint-disable no-sync */
+        if(fs.statSync(packagePathDir).isDirectory()) {
+            // Check local version compare to requested
+            if(require(path.join(packagePathDir, 'package.json')).version === version) {
+                return true;
             }
-            /* eslint-enable no-sync */
-        } catch(e) {
-            // Need install...
         }
+        /* eslint-enable no-sync */
+    } catch(e) {
+        // Need install...
+    }
+
+    return false;
+}
+
+function linkMissing(src, dest) {
+    var srcPackages = ls(src);
+    var destPackages = ls(dest);
+    var keep = srcPackages.filter(function(i) {
+        return (destPackages.indexOf(i) === -1);
     });
 
-    return founds.length ? ('('+founds.length+') ' + founds[0]) : null;
+    keep.forEach( function(name) {
+        ln('-s', path.join(src, name), path.join(dest, name));
+    });
 }
 
 function consumeNextDependency() {
     if(depsToInstall.length && currentPoolSize < maxDownloadPool) {
         var pkgNameVersion = depsToInstall.pop();
         var nameVersion = pkgNameVersion.split('@');
-        var packagePath = findPackage(pkgNameVersion);
+        var foundPackage = findPackage(pkgNameVersion);
 
-        if(!packagePath) {
+        if(!foundPackage) {
             currentPoolSize++;
             printProgress(nameVersion[0], nameVersion[1], 'Download', '+ ');
             exec('npm install ' + pkgNameVersion,
@@ -129,38 +136,24 @@ function consumeNextDependency() {
                 }
             );
         } else {
-            printProgress(nameVersion[0], nameVersion[1], 'Local ' + packagePath, '- ');
+            printProgress(nameVersion[0], nameVersion[1], 'Local', '- ');
             consumeNextDependency();
         }
+    } else {
+        // Add missing pieces
+        ['node_modules', 'node_modules/.bin'].forEach(function(subDir) {
+           linkMissing(path.join(workDir, subDir), path.join(process.env.PWD, subDir));
+        })
     }
 }
 
-function linkExecutable(src, dest) {
-    if(src !== dest) {
-        var binPath = path.join(src, '.bin');
-        var execPath = path.join(dest, '.bin');
-        mkdir('-p', binPath);
-        mkdir('-p', execPath);
-        ls(binPath).forEach(function(file) {
-            var srcPath = path.join(binPath, file);
-            if(test('-e', srcPath)) {
-                ln('-sf', srcPath, path.join(execPath, path.basename(file)));
-            }
-        });
-    }
-}
+
 
 function processDependencies() {
-    var destDir = nodeModuleDirs[0];
-
+    mkdir('-p', path.join(process.env.PWD,'node_modules/.bin'));
     while(depsToInstall.length && currentPoolSize < maxDownloadPool) {
         consumeNextDependency();
     }
-
-    // Add bin exec from parent
-    nodeModuleDirs.forEach(function(src) {
-        linkExecutable(src, destDir);
-    });
 }
 
 function processDependencyMap(depMap) {
@@ -186,32 +179,32 @@ function checkVersion(entry) {
 
 // Start execution
 if(program.checkPackage) {
-    if(pkgJson.dependencies) {
-        processDependencyMap(pkgJson.dependencies);
+    if(targetPkg.dependencies) {
+        processDependencyMap(targetPkg.dependencies);
     }
-    if(pkgJson.devDependencies) {
-        processDependencyMap(pkgJson.devDependencies);
+    if(targetPkg.devDependencies) {
+        processDependencyMap(targetPkg.devDependencies);
     }
 
     checkVersion(depsToInstall.pop());
 } else if(program.all) {
-    Object.keys(pkgJson.dep).forEach( function(group) {
-        processDependencyMap(pkgJson.dep[group]);
+    Object.keys(depGroups).forEach( function(group) {
+        processDependencyMap(depGroups[group]);
     });
     processDependencies();
 } else if(program.check) {
-    var groups = program.args.length ? program.args : Object.keys(pkgJson.dep);
+    var groups = program.args.length ? program.args : Object.keys(depGroups);
     groups.forEach( function(group) {
-        processDependencyMap(pkgJson.dep[group]);
+        processDependencyMap(depGroups[group]);
     });
 
     checkVersion(depsToInstall.pop());
 } else if(program.list) {
-    console.log('Targets =>', Object.keys(pkgJson.dep).join(', '));
+    console.log('Targets =>', Object.keys(depGroups).join(', '));
 } else if(program.args.length) {
     program.args.forEach( function(group) {
-        if(pkgJson.dep[group]) {
-            processDependencyMap(pkgJson.dep[group]);
+        if(depGroups[group]) {
+            processDependencyMap(depGroups[group]);
         }
     });
     processDependencies();

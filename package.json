@@ -37,6 +37,9 @@
   "config": {
     "commitizen": {
       "path": "node_modules/cz-conventional-changelog"
+    },
+    "npm-dep": {
+            "path": "config/tools.js"
     }
   }
 }
