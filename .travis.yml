@@ -9,6 +9,7 @@ notifications:
 cache:
   directories:
     - node_modules
+    - /home/travis/.npm-dep
 node_js:
   - "4.1"
 after_success:
