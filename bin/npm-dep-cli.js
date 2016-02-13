@@ -48,7 +48,7 @@ process.title = targetPKG.name;
 
 program
   .version(npmDepVersion)
-  .usage('[options] or target1 target2 ...')
+  .usage('[options] or target1 target2 or install')
 
   .option('-c, --check', 'Check outdated dependencies.')
   .option('-p, --check-package', 'Check package.json dependencies.\n')
@@ -209,6 +209,13 @@ if(program.checkPackage) {
     program.args.forEach( function(group) {
         if(cacheConfig[group]) {
             processDependencyMap(cacheConfig[group]);
+        } else if (group === 'install' || group === 'i') {
+            if(targetPKG.dependencies) {
+                processDependencyMap(targetPKG.dependencies);
+            }
+            if(targetPKG.devDependencies) {
+                processDependencyMap(targetPKG.devDependencies);
+            }
         }
     });
     processDependencies();
