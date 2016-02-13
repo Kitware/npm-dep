@@ -1,9 +1,13 @@
+[![Build Status](https://travis-ci.org/Kitware/npm-dep.svg)](https://travis-ci.org/Kitware/npm-dep)
+[![Dependency Status](https://david-dm.org/kitware/npm-dep.svg)](https://david-dm.org/kitware/npm-dep)
+[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
+![npm-download](https://img.shields.io/npm/dm/npm-dep.svg)
+
 # Introduction
 
 **npm-dep** provides a way to cache your tools dependencies
 on your file system so you don't need to re-download them again
-while allowing to share them between projects. Moreover, 
-why should you mix your development tools into your code dependencies.
+while allowing to share them between projects. 
 
 Currently NPM install all the dependencies from 
 **dependencies** and **devDependencies** inside your
@@ -75,18 +79,17 @@ by another project that depend on your **npm-dep** friendly application.
 ```javascript
 # ./config/tools.js
 module.exports = {
-    name: 'YourProjectName', // Can be shared accross projects to prevent re-download
-    dep: {
-        // Use to build code
-        groupNameA: {
-            packageName: 'version',
-            [...]
-        },
-        // Use to test section A
-        groupNameB: {
-            packageName2: 'version54',
-            [...]
-        }
+    
+    // Use to build code
+    groupNameA: {
+        packageName: 'version',
+        [...]
+    },
+
+    // Use to test section A
+    groupNameB: {
+        packageName2: 'version54',
+        [...]
     }
 }
 
@@ -102,10 +105,9 @@ module.exports = {
 }
 ```
 
-Then when running, **npm-dep** will install the required set of packages
-into your ${HOME}/.npm-dep/${name}/node_modules/ directory and create 
-a symbolic link to your local directories (./node_modules/* & ./node_modules/.bin/*)
-for each missing application or package.
+Then when running, **npm-dep** will cache all downloaded packages inside
+your ${HOME}/.npm-dep/pkg@ver/... directory and will then copy any 
+node_modules/.bin/* and node_modules/* into your local ./node_modules/ directory.
 
 Here is the full list of usage:
 
@@ -135,6 +137,5 @@ Here is the full list of usage:
 Fork our repository and do great things. At [Kitware](http://www.kitware.com),
 we've been contributing to open-source software for 15 years and counting, and
 want to make **npm-dep** useful to as many people as possible.
-
 
 
