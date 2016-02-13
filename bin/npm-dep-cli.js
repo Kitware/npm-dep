@@ -111,7 +111,7 @@ function linkMissing(src, dest) {
     });
 
     keep.forEach( function(name) {
-        cp('-r', path.join(src, name), path.join(dest, name));
+        cp('-r', path.join(src, name), dest);
     });
 }
 
